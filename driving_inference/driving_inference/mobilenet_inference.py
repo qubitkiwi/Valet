@@ -81,8 +81,8 @@ class MobileNetInferenceNode(Node):
 
         # Twist 메시지 생성 및 발행
         twist_msg = Twist()
-        twist_msg.linear.x = v
-        twist_msg.angular.z = w
+        twist_msg.linear.x = v * self.LEANER_GAIN
+        twist_msg.angular.z = w * self.STEERING_GAIN
         self.cmd_pub.publish(twist_msg)
 
     def run_inference(self, image):
