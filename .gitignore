@@ -1,1 +1,9 @@
 __pycache__
+parking_server/dataset
+parking_server/train_log
+parking_server/collector.py
+parking_server/config.py
+parking_server/fix_csv_header.py
+parking_server/fix_dagger_csv_paths.py
+parking_server/plot_logs.py
+parking_server/swap.py
