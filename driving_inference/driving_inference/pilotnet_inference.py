@@ -18,12 +18,14 @@ class PilotNetInferenceNode(Node):
         self.declare_parameter('STEERING_GAIN', 1.0)
         self.declare_parameter('MODEL_PATH', 'data_aug_train256_lr001_model.pth')
         self.declare_parameter('input_video', '/camera_2/image/compressed')
+        self.output_cmd_topic = self.get_parameter('output_cmd_topic').get_parameter_value().string_value
 
         self.CROP_HEIGHT = self.get_parameter('CROP_HEIGHT').get_parameter_value().integer_value
         self.LEANER_GAIN = self.get_parameter('LEANER_GAIN').get_parameter_value().double_value
         self.STEERING_GAIN = self.get_parameter('STEERING_GAIN').get_parameter_value().double_value
         self.MODEL_PATH = self.get_parameter('MODEL_PATH').get_parameter_value().string_value
         self.input_video = self.get_parameter('input_video').get_parameter_value().string_value
+        self.output_cmd_topic = self.get_parameter('output_cmd_topic').get_parameter_value().string_value
 
         # 구독자: 카메라 이미지
         self.image_sub = self.create_subscription(
@@ -36,7 +38,7 @@ class PilotNetInferenceNode(Node):
         # 발행자: 제어 명령
         self.cmd_pub = self.create_publisher(
             Twist,
-            '/controller/cmd_vel',
+            self.output_cmd_topic,
             10
         )
 
