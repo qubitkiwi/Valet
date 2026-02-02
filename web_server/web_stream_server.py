@@ -5,7 +5,7 @@ import json
 
 app = FastAPI()
 
-# --- 연결 관리자 ---
+# --- 연결 관리자 (변경 없음) ---
 class ConnectionManager:
     def __init__(self):
         self.robot_ws: WebSocket = None
@@ -85,6 +85,7 @@ def get():
         <style>
             :root {
                 --primary: #00f3ff;
+                --warning: #ff2a6d;
                 --bg-dark: #050505;
                 --panel-bg: rgba(10, 20, 30, 0.85);
             }
@@ -106,10 +107,11 @@ def get():
                 z-index: 50; padding: 0 30px; box-sizing: border-box;
             }
 
-            /* --- 그리드 레이아웃 --- */
+            /* --- 그리드 레이아웃 수정 (4열 구조) --- */
             .grid-container {
                 display: grid; 
-                grid-template-columns: 1fr 1.5fr 1fr; 
+                /* Safety | Left | Front/Rear | Right */
+                grid-template-columns: 1.2fr 0.8fr 1.2fr 0.8fr; 
                 grid-template-rows: 1fr 1fr;
                 gap: 10px; 
                 width: 100vw; height: 100vh; 
@@ -125,30 +127,39 @@ def get():
                 overflow: hidden; 
                 border-radius: 8px;
             }
+            
+            /* --- [New] Safety View (맨 왼쪽) --- */
+            .pos-safety { 
+                grid-column: 1; grid-row: 1 / span 2; 
+                border-color: var(--warning); /* 강조 색상 */
+            }
+            .pos-safety img {
+                width: 100%; height: 100%; object-fit: contain; 
+            }
 
-            /* --- 이미지 변환 설정 (90도 회전 + 좌우 반전) --- */
-            .pos-left { grid-column: 1; grid-row: 1 / span 2; }
+            /* --- 기존 카메라 위치 이동 --- */
+            .pos-left { grid-column: 2; grid-row: 1 / span 2; } /* 1열 -> 2열 */
             .pos-left img { 
                 transform: rotate(270deg) scaleX(-1);
                 min-width: 180%; height: auto; object-fit: cover; 
             }
 
-            .pos-front { grid-column: 2; grid-row: 1; border-color: rgba(0, 243, 255, 0.4); }
+            .pos-front { grid-column: 3; grid-row: 1; border-color: rgba(0, 243, 255, 0.4); } /* 2열 -> 3열 */
             .pos-front img { width: 100%; height: 100%; object-fit: contain; }
 
-            .pos-rear { grid-column: 2; grid-row: 2; }
+            .pos-rear { grid-column: 3; grid-row: 2; } /* 2열 -> 3열 */
             .pos-rear img {
                 transform: scaleX(-1); 
                 width: 100%; height: 100%; object-fit: contain; 
             }
 
-            .pos-right { grid-column: 3; grid-row: 1 / span 2; }
+            .pos-right { grid-column: 4; grid-row: 1 / span 2; } /* 3열 -> 4열 */
             .pos-right img { 
                 transform: rotate(90deg) scaleX(-1);
                 min-width: 180%; height: auto; object-fit: cover; 
             }
 
-            /* --- 라벨 설정: 항상 정위치 --- */
+            /* --- 라벨 설정 --- */
             .label-box {
                 position: absolute; 
                 z-index: 25; 
@@ -162,6 +173,12 @@ def get():
                 top: 15px; 
                 left: 50%; 
                 transform: translateX(-50%); 
+            }
+            
+            /* Safety 라벨만 색상 다르게 */
+            .pos-safety .label-box {
+                border-color: var(--warning);
+                color: var(--warning);
             }
 
             .fps-counter { color: #fff; font-weight: bold; }
@@ -187,6 +204,11 @@ def get():
         </div>
 
         <div class="grid-container">
+            <div class="cam-box pos-safety">
+                <div class="label-box">SAFETY AI <span class="fps-counter" id="fps-4">0 FPS</span></div>
+                <img id="cam-4" src="">
+            </div>
+
             <div class="cam-box pos-left">
                 <div class="label-box">LEFT <span class="fps-counter" id="fps-2">0 FPS</span></div>
                 <img id="cam-2" src="">
@@ -220,15 +242,19 @@ def get():
             var ws = new WebSocket(protocol + "//" + window.location.host + "/ws/user");
             ws.binaryType = "arraybuffer"; 
             
-            var prevUrls = [null, null, null, null];
-            var frameCounts = [0, 0, 0, 0];
+            // 기존 4개 + Safety 1개 = 총 5개 슬롯
+            var prevUrls = [null, null, null, null, null];
+            var frameCounts = [0, 0, 0, 0, 0];
 
             ws.onmessage = function(event) {
                 if (typeof event.data === "string") return;
                 var view = new Uint8Array(event.data);
+                
+                // 첫 바이트가 Cam Index (0~4)
                 var camId = view[0];
                 var blob = new Blob([view.subarray(1)], {type: "image/jpeg"});
                 var url = URL.createObjectURL(blob);
+                
                 var imgTag = document.getElementById("cam-" + camId);
                 if (imgTag) {
                     if (prevUrls[camId]) URL.revokeObjectURL(prevUrls[camId]);
@@ -239,7 +265,8 @@ def get():
             };
 
             setInterval(function() {
-                for (var i = 0; i < 4; i++) {
+                // 5개 (0~4)에 대해 FPS 갱신
+                for (var i = 0; i < 5; i++) {
                     var el = document.getElementById("fps-" + i);
                     if (el) el.innerText = frameCounts[i] + " FPS";
                     frameCounts[i] = 0;
