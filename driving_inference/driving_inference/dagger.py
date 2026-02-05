@@ -1,75 +1,66 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
-# from driving_inference.msg import Recode
-from std_msgs.msg import Int32
+from std_msgs.msg import Int32, Bool
 
 class DAggerNode(Node):
     def __init__(self):
         super().__init__('dagger_node')
 
         self.declare_parameter('joystick_cmd_topic', '/joystick/cmd_vel')
-        self.declare_parameter('inference_cmd_topic', '/inference/cmd_vel')
-        self.declare_parameter('recode_topic', '/record_control')
+        self.declare_parameter('inference_cmd_topic', '/driving/raw_cmd')
+        self.declare_parameter('intervention_topic', '/human_intervention_state')
         self.declare_parameter('output_cmd_topic', '/controller/cmd_vel')
 
-        self.joystick_cmd_topic = self.get_parameter('joystick_cmd_topic').get_parameter_value().string_value
-        self.inference_cmd_topic = self.get_parameter('inference_cmd_topic').get_parameter_value().string_value
-        self.recode_topic = self.get_parameter('recode_topic').get_parameter_value().string_value
-        self.output_cmd_topic = self.get_parameter('output_cmd_topic').get_parameter_value().string_value
+        self.joystick_topic = self.get_parameter('joystick_cmd_topic').value
+        self.inference_topic = self.get_parameter('inference_cmd_topic').value
+        self.intervention_topic = self.get_parameter('intervention_topic').value
+        self.output_topic = self.get_parameter('output_cmd_topic').value
 
-        # 구독자: 조이스틱 명령
-        self.joystick_cmd_sub = self.create_subscription(
-            Twist,
-            self.joystick_cmd_topic,
-            self.joystick_cmd_callback,
-            10
-        )
+        # 조이스틱 구독
+        self.joystick_sub = self.create_subscription(
+            Twist, self.joystick_topic, self.joystick_callback, 10)
 
-        # 구독자: 학습자 명령
-        self.inference_cmd_sub = self.create_subscription(
-            Twist,
-            self.inference_cmd_topic,
-            self.inference_cmd_callback,
-            10
-        )
+        # AI 모델 구독
+        self.inference_sub = self.create_subscription(
+            Twist, self.inference_topic, self.inference_callback, 10)
 
-        # 구독자: recode 토픽
-        self.recode_sub = self.create_subscription(
-            Int32,
-            self.recode_topic,
-            self.recode_callback,
-            10
-        )
+        # 개입 상태 구독
+        self.human_sub = self.create_subscription(
+            Bool, self.intervention_topic, self.intervention_callback, 10)
 
-        # 발행자: 최종 제어 명령
-        self.cmd_pub = self.create_publisher(
-            Twist,
-            self.output_cmd_topic,
-            10
-        )
+        # 최종 명령 발행
+        self.cmd_pub = self.create_publisher(Twist, self.output_topic, 10)
 
-        self.use_expert = 0
+        # 상태 변수: True이면 사람(Expert)이 제어, False이면 AI(Inference)가 제어
+        self.is_human_control = True 
 
-    def joystick_cmd_callback(self, msg):
-        if self.use_expert != 0:
+    def intervention_callback(self, msg):
+        self.is_human_control = msg.data
+        mode = "HUMAN (Joystick)" if self.is_human_control else "AI (Inference)"
+        self.get_logger().info(f"Control Mode Switched to: {mode}")
+        msg = Twist()
+        self.cmd_pub.publish(msg)
+
+
+    def joystick_callback(self, msg):
+        if self.is_human_control:
             self.cmd_pub.publish(msg)
 
-    def inference_cmd_callback(self, msg):
-        if self.use_expert == 0:
+    def inference_callback(self, msg):
+        if not self.is_human_control:
             self.cmd_pub.publish(msg)
-
-    def recode_callback(self, msg):
-        self.use_expert = msg.data
-
 
 def main(args=None):
     rclpy.init(args=args)
     node = DAggerNode()
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
-
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
