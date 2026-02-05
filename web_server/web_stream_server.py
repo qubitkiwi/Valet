@@ -87,7 +87,7 @@ def get():
                 --primary: #00f3ff;
                 --warning: #ff2a6d;
                 --bg-dark: #050505;
-                --panel-bg: rgba(10, 20, 30, 0.85);
+                --panel-bg: rgba(10, 20, 30, 0.9);
             }
 
             body { 
@@ -107,11 +107,11 @@ def get():
                 z-index: 50; padding: 0 30px; box-sizing: border-box;
             }
 
-            /* --- 그리드 레이아웃 수정 (4열 구조) --- */
+            /* --- 그리드 레이아웃 (2fr : 1fr : 1fr) --- */
+            /* Safety가 2칸 차지(50%), 나머지 두 열이 각각 25%씩 차지하여 2x2 형성 */
             .grid-container {
                 display: grid; 
-                /* Safety | Left | Front/Rear | Right */
-                grid-template-columns: 1.2fr 0.8fr 1.2fr 0.8fr; 
+                grid-template-columns: 2fr 1fr 1fr; 
                 grid-template-rows: 1fr 1fr;
                 gap: 10px; 
                 width: 100vw; height: 100vh; 
@@ -128,57 +128,63 @@ def get():
                 border-radius: 8px;
             }
             
-            /* --- [New] Safety View (맨 왼쪽) --- */
+            /* --- 1. Safety View (좌측 절반, 전체 높이) --- */
             .pos-safety { 
                 grid-column: 1; grid-row: 1 / span 2; 
-                border-color: var(--warning); /* 강조 색상 */
+                border-color: var(--warning); 
+                box-shadow: 0 0 15px rgba(255, 42, 109, 0.1);
             }
             .pos-safety img {
                 width: 100%; height: 100%; object-fit: contain; 
             }
 
-            /* --- 기존 카메라 위치 이동 --- */
-            .pos-left { grid-column: 2; grid-row: 1 / span 2; } /* 1열 -> 2열 */
-            .pos-left img { 
-                transform: rotate(270deg) scaleX(-1);
-                min-width: 180%; height: auto; object-fit: cover; 
-            }
-
-            .pos-front { grid-column: 3; grid-row: 1; border-color: rgba(0, 243, 255, 0.4); } /* 2열 -> 3열 */
+            /* --- 2. 일반 카메라 (우측 2x2 영역) --- */
+            
+            /* [Row 1] Front & Left */
+            .pos-front { grid-column: 2; grid-row: 1; border-color: rgba(0, 243, 255, 0.4); }
             .pos-front img { width: 100%; height: 100%; object-fit: contain; }
 
-            .pos-rear { grid-column: 3; grid-row: 2; } /* 2열 -> 3열 */
+            .pos-left { grid-column: 2; grid-row: 2; }
+            .pos-left img { 
+                transform: rotate(270deg) scaleX(-1);
+                /* 2x2 칸에 맞게 크기 조절 */
+                max-width: 100%; max-height: 100%; object-fit: contain; 
+            }
+
+            /* [Row 2] Rear & Right */
+            .pos-rear { grid-column: 3; grid-row: 1; }
             .pos-rear img {
                 transform: scaleX(-1); 
                 width: 100%; height: 100%; object-fit: contain; 
             }
 
-            .pos-right { grid-column: 4; grid-row: 1 / span 2; } /* 3열 -> 4열 */
+            .pos-right { grid-column: 3; grid-row: 2; }
             .pos-right img { 
                 transform: rotate(90deg) scaleX(-1);
-                min-width: 180%; height: auto; object-fit: cover; 
+                max-width: 100%; max-height: 100%; object-fit: contain; 
             }
 
             /* --- 라벨 설정 --- */
             .label-box {
                 position: absolute; 
                 z-index: 25; 
-                padding: 4px 12px;
+                padding: 4px 8px;
                 background: rgba(0, 0, 0, 0.7); 
                 border: 1px solid var(--primary);
                 color: var(--primary); 
                 font-family: 'Orbitron'; 
-                font-size: 11px;
-                display: flex; gap: 8px; align-items: center;
-                top: 15px; 
+                font-size: 10px;
+                display: flex; gap: 6px; align-items: center;
+                top: 10px; 
                 left: 50%; 
                 transform: translateX(-50%); 
+                white-space: nowrap;
             }
             
-            /* Safety 라벨만 색상 다르게 */
             .pos-safety .label-box {
                 border-color: var(--warning);
                 color: var(--warning);
+                font-size: 14px; padding: 6px 15px; /* Safety 라벨은 조금 더 크게 */
             }
 
             .fps-counter { color: #fff; font-weight: bold; }
@@ -193,13 +199,19 @@ def get():
             .btn {
                 background: #1a1a1a; border: 1px solid #333; color: white;
                 padding: 10px 20px; font-family: 'Orbitron'; cursor: pointer; border-radius: 4px;
+                font-size: 14px;
             }
+            .btn:hover { background: #333; }
             .btn-stop { background: #ff2a6d; border: none; }
+            .btn-stop:hover { background: #d61c56; }
+
         </style>
     </head>
     <body>
         <div class="top-bar">
-            <div style="font-family:'Orbitron'; font-weight:900;">RC<span style="color:var(--primary)">CONTROL</span></div>
+            <div style="font-family:'Orbitron'; font-weight:900; font-size: 20px;">
+                See<span style="color:var(--primary)">:Park</span>
+            </div>
             <div style="font-size:14px;" id="current-mode">OFFLINE</div>
         </div>
 
@@ -209,14 +221,14 @@ def get():
                 <img id="cam-4" src="">
             </div>
 
-            <div class="cam-box pos-left">
-                <div class="label-box">LEFT <span class="fps-counter" id="fps-2">0 FPS</span></div>
-                <img id="cam-2" src="">
-            </div>
-            
             <div class="cam-box pos-front">
                 <div class="label-box">FRONT <span class="fps-counter" id="fps-0">0 FPS</span></div>
                 <img id="cam-0" src="">
+            </div>
+            
+            <div class="cam-box pos-left">
+                <div class="label-box">LEFT <span class="fps-counter" id="fps-2">0 FPS</span></div>
+                <img id="cam-2" src="">
             </div>
             
             <div class="cam-box pos-rear">
@@ -242,7 +254,7 @@ def get():
             var ws = new WebSocket(protocol + "//" + window.location.host + "/ws/user");
             ws.binaryType = "arraybuffer"; 
             
-            // 기존 4개 + Safety 1개 = 총 5개 슬롯
+            // 0:Front, 1:Rear, 2:Left, 3:Right, 4:Safety
             var prevUrls = [null, null, null, null, null];
             var frameCounts = [0, 0, 0, 0, 0];
 
@@ -250,7 +262,6 @@ def get():
                 if (typeof event.data === "string") return;
                 var view = new Uint8Array(event.data);
                 
-                // 첫 바이트가 Cam Index (0~4)
                 var camId = view[0];
                 var blob = new Blob([view.subarray(1)], {type: "image/jpeg"});
                 var url = URL.createObjectURL(blob);
@@ -265,7 +276,6 @@ def get():
             };
 
             setInterval(function() {
-                // 5개 (0~4)에 대해 FPS 갱신
                 for (var i = 0; i < 5; i++) {
                     var el = document.getElementById("fps-" + i);
                     if (el) el.innerText = frameCounts[i] + " FPS";
