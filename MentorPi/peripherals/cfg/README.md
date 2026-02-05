@@ -1,0 +1,1 @@
+ros2 run twist_mux twist_mux --ros-args --params-file twist_mux.yaml --remap cmd_vel_out:=/controller/cmd_vel

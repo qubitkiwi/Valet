@@ -1,0 +1,20 @@
+twist_mux:
+  ros__parameters:
+    topics:
+      # [우선순위 10] 기본 주행 (평소에는 이게 작동)
+      driving:
+        topic: /driving/raw_cmd
+        timeout: 0.5
+        priority: 10
+      
+      # [우선순위 10] 주차 명령
+      parking:
+        topic: /parking/raw_cmd
+        timeout: 0.5
+        priority: 10
+        
+      # [우선순위 100] 안전 정지 (SafetyNode가 위험 감지 시에만 발행)
+      safety_stop:
+        topic: /safety/stop_cmd
+        timeout: 0.5
+        priority: 100
