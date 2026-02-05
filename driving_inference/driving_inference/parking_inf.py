@@ -4,16 +4,15 @@ import cv2
 import numpy as np
 import torch
 import torch.nn.functional as F
-import json  # ★ [추가] JSON 파싱용
+import json 
 
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Twist
 from sensor_msgs.msg import CompressedImage
-from std_msgs.msg import Bool, String  # ★ [수정] String 추가
+from std_msgs.msg import Bool, String 
 from typing import Dict, Tuple, Optional, List
 
-# ★ 저장해둔 모델 파일명과 Class 이름이 맞는지 꼭 확인하세요!
 from mobilenetv3s_parking_model_pretrained_multi import MultiCamParkingModel
 
 # -------------------------
