@@ -42,8 +42,9 @@ MobileNetV3 기반의 모방 학습(Imitation Learning) 모델을 적용하여 �
 <img src="./img/driving_fast.gif" width="480" alt="Driving Demo"/>
 
 ### 3. 통합 시연 (Integration)
-<img src="./img/to_total_fast.gif" width="480" alt="Total Integration Demo"/>
+<img src="./img/seedrive_fast.gif" width="480" alt="Total Integration Demo"/>
 
 ---
 
 ## 🌐 Web Interface
+<img src="./img/web_fast.gif" width="480" alt="web Demo"/>
